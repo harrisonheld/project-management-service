@@ -4,7 +4,7 @@
 **POST** `/auth/register`
 
 **Request Body:**
-```
+```json
 {
   "username": "alice1234",
   "password": "password_in_plaintext"
@@ -12,9 +12,16 @@
 ```
 
 **Response:**
-```
+On success:
+```json
 {
-  "user_id": "<user_id>"  # This is a 24-character hex string ObjectId from MongoDB
+  "user_id": "507f1f77bcf86cd799439011"  # This is a 24-character hex string ObjectId from MongoDB
+}
+```
+On failure:
+```json
+{
+    "error": "Human readable reason here"
 }
 ```
 
@@ -27,7 +34,7 @@
 **POST** `/auth/login`
 
 **Request Body:**
-```
+```json
 {
   "username": "alice1234",
   "password": "password_in_plaintext"
@@ -35,11 +42,18 @@
 ```
 
 **Response:**
-```
+On success
+```json
 {
   "access_token": "<JWT>",
   "expires_in": 3600,
-  "user_id": "<user_id>"
+  "user_id": "507f1f77bcf86cd799439011"
+}
+```
+On failure:
+```json
+{
+    "error": "Human readable reason here"
 }
 ```
 
@@ -52,18 +66,26 @@
 **POST** `/auth/validate`
 
 **Request Body:**
-```
+```json
 {
   "access_token": "<JWT>"
 }
 ```
 
 **Response:**
-```
+If the token is valid:
+```json
 {
   "valid": true,
   "user_id": "<user_id>",
   "username": "alice1234"
+}
+```
+If the token is invalid:
+On failure:
+```json
+{
+    "error": "Human readable reason here"
 }
 ```
 
