@@ -25,6 +25,13 @@ def create_project(slug, name, description, owner_id):
     result = db.projects.insert_one(project)
     return result.inserted_id
 
+def get_project_hardware(project_id):
+    """Get all hardware for a project by project_id"""
+    hardware = list(db.hardware.find({"project_id": project_id}))
+    for h in hardware:
+        h["_id"] = str(h["_id"])
+        h["project_id"] = str(h["project_id"])
+    return hardware
 
 def get_user_projects(user_id):
     """Get all projects for a user with user_id lookups"""

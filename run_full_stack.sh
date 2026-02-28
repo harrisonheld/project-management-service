@@ -19,19 +19,18 @@ else
     exit 1
 fi
 
-# Start mock UserAuth service in background
-if [ -d mock_auth ]; then
-    echo "Starting mock UserAuth service..."
-    (cd mock_auth && source ../venv/bin/activate && python mock_auth.py &)
-    MOCK_PID=$!
-    sleep 2
-else
-    echo "mock_auth directory not found."
-    exit 1
-fi
+# Start mock services in background
+echo "Starting mock UserAuth service..."
+(cd mocks && python mock_auth.py &)
+MOCK_USERAUTH_PID=$!
+sleep 2
+echo "Starting mock HardwareManagement service..."
+(cd mocks && python mock_hardware.py &)
+MOCK_HARDWARE_PID=$!
+sleep 2
 
-# Ensure the mock service is killed on exit (Ctrl+C or error)
-trap "kill $MOCK_PID 2>/dev/null" EXIT
+# Kill mocks on exit (^C)
+trap "kill $MOCK_USERAUTH_PID 2>/dev/null; kill $MOCK_HARDWARE_PID 2>/dev/null" EXIT
 
 # Start main ProjectManagement Flask app (foreground)
 export FLASK_APP=app.py
