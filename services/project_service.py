@@ -56,16 +56,11 @@ def join_project(slug, user_id):
     Returns: (success: bool, message: str, data: dict or None)
     """
     project = find_project_by_slug(slug)
-    
     if not project:
         return False, "Project not found", None
-    
-    user_obj_id = ObjectId(user_id)
-    if user_obj_id in project["users"]:
+    if user_id in project["users"]:
         return False, "Already a member of this project", None
-    
     add_user_repo(project["_id"], user_id)
-    
     return True, "Successfully joined project", {
         "project_id": str(project["_id"]),
         "slug": project["slug"],

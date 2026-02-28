@@ -14,9 +14,11 @@ LOGIN_RESPONSE=$(curl -s -X POST http://localhost:5001/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "'$USERNAME'", "password": "splinter"}')
 
-# Extract token
+# Extract token and user_id
 TOKEN=$(echo "$LOGIN_RESPONSE" | sed -n 's/.*"access_token"[ ]*:[ ]*"\([^"]*\)".*/\1/p')
+USER_ID=$(echo "$LOGIN_RESPONSE" | sed -n 's/.*"user_id"[ ]*:[ ]*"\([^"]*\)".*/\1/p')
 echo "Token: $TOKEN"
+echo "User ID: $USER_ID"
 
 # Create a project
 curl -X POST http://localhost:5000/projects \
