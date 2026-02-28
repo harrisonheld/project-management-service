@@ -20,23 +20,31 @@ USER_ID=$(echo "$LOGIN_RESPONSE" | sed -n 's/.*"user_id"[ ]*:[ ]*"\([^"]*\)".*/\
 echo "Token: $TOKEN"
 echo "User ID: $USER_ID"
 
+
+
+
+SLUG="project-slug-$(shuf -i 10000-99999 -n 1)"
+echo "Using slug: $SLUG"
+
 # Create a project
+echo "CREATING A NEW PROJECT"
 curl -X POST http://localhost:5000/projects \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"slug": "my-project", "name": "My Project", "description": "A sample project"}'
-
-echo "---"
+  -d '{"slug": "'$SLUG'", "name": "My Project", "description": "A sample project"}'
+echo "\n"
 
 # Get all projects for a user
+echo "GETTING ALL PROJECTS FOR USER"
 curl http://localhost:5000/projects -H "Authorization: Bearer $TOKEN"
-
-echo "---"
+echo "\n"
 
 # Get project details
-curl http://localhost:5000/projects/my-project -H "Authorization: Bearer $TOKEN"
-
-echo "---"
+echo "GETTING PROJECT DETAILS FOR JUST-CREATED PROJECT"
+curl http://localhost:5000/projects/$SLUG -H "Authorization: Bearer $TOKEN"
+echo "\n"
 
 # Join a project
-curl -X POST http://localhost:5000/projects/my-project/join -H "Authorization: Bearer $TOKEN"
+echo "JOINING A PROJECT WE ARE ALREADY IN"
+curl -X POST http://localhost:5000/projects/$SLUG/join -H "Authorization: Bearer $TOKEN"
+echo "\n"
