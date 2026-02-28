@@ -34,7 +34,7 @@ def validate():
     token = data.get('access_token')
     # Accept only the mock token for testing
     if token and token.startswith('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'):
-        # Return the first user for simplicity
+        # Return the first user for simplicity - a real implementation should return the user the token corresponds to
         for username, info in users.items():
             return jsonify({'valid': True, 'user_id': info['user_id'], 'username': username})
     return jsonify({'valid': False}), 401
