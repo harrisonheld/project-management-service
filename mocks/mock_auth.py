@@ -11,8 +11,10 @@ def register():
     data = request.json
     username = data.get('username')
     password = data.get('password')
-    if not username or not password or username in users:
-        return jsonify({'error': 'Invalid input or user exists'}), 400
+    if not username or not password:
+        return jsonify({'error': 'Missing username or password'}), 400
+    if username in users:
+        return jsonify({'error': 'Username already registered'}), 400
     user_id = str(uuid.uuid4())
     users[username] = {'username': username, 'password': password, 'user_id': user_id}
     return jsonify({'user_id': user_id})
@@ -23,8 +25,10 @@ def login():
     username = data.get('username')
     password = data.get('password')
     user = users.get(username)
-    if not user or user['password'] != password:
-        return jsonify({'error': 'Invalid credentials'}), 401
+    if not user:
+        return jsonify({'error': 'User does not exist'}), 401
+    if user['password'] != password:
+        return jsonify({'error': 'Password does not exist'}), 401
     fake_jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mockpayload.signature'
     return jsonify({'access_token': fake_jwt, 'expires_in': 3600, 'user_id': user['user_id']})
 
@@ -37,7 +41,7 @@ def validate():
         # Return the first user for simplicity - a real implementation should return the user the token corresponds to
         for username, info in users.items():
             return jsonify({'valid': True, 'user_id': info['user_id'], 'username': username})
-    return jsonify({'valid': False}), 401
+    return jsonify({'error': 'Invalid or expired token'}), 401
 
 if __name__ == '__main__':
     app.run(port=5001, debug=True)
