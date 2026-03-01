@@ -1,8 +1,8 @@
 
 from flask import Flask, request, jsonify
-import uuid
 import jwt
 import datetime
+import random
 
 
 app = Flask(__name__)
@@ -10,6 +10,10 @@ app = Flask(__name__)
 # JWT secret and algorithm (for mock only)
 JWT_SECRET = 'mock_secret_key'
 JWT_ALGORITHM = 'HS256'
+
+# Helper to generate a random 24-character hex string (MongoDB ObjectId style)
+def random_objectid():
+    return ''.join(random.choices('0123456789abcdef', k=24))
 
 # In-memory user store for mock
 users = {}
@@ -23,7 +27,7 @@ def register():
         return jsonify({'error': 'Missing username or password'}), 400
     if username in users:
         return jsonify({'error': 'Username already registered'}), 400
-    user_id = str(uuid.uuid4())
+    user_id = random_objectid()
     users[username] = {'username': username, 'password': password, 'user_id': user_id}
     return jsonify({'user_id': user_id})
 

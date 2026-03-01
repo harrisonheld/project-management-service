@@ -120,5 +120,5 @@ On failure:
 **General Notes**
 - All endpoints return JSON.
 - The HardwareService is the sole authority for hardware inventory, checkout, and return.
-- ProjectManagement service must call HardwareService for all hardware operations.
-- HardwareService will validate user_id and hardware_id.
+- ProjectManagement service will call HardwareService for all hardware operations.
+- HardwareService will validate user_id using the UserAuth service, and hardware_id on its own.
