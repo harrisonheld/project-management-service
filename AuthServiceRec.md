@@ -98,7 +98,7 @@ On failure:
 - All endpoints return JSON.
 - JWT tokens should be used for authentication between services.
 - Passwords must be securely hashed and never returned in responses.
-- The ProjectManagement service will call `/auth/validate` to authenticate users and extract user info from tokens.
+- Other services will call `/auth/validate` to authenticate users and extract user info from tokens.
 - The `user_id` returned by the Auth service is a unique, stable identifier (e.g., a MongoDB ObjectId string) and must be used as the user identifier in all ProjectManagement service operations and database records.
 
 ## Example Usage in ProjectManagement Service
