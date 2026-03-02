@@ -97,7 +97,7 @@ echo "\n"
 # Get all projects for a user
 echo "GETTING ALL PROJECTS FOR USER"
 curl "$PROJECT_URL/projects" \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" \
   -w "\nHTTP_STATUS:%{http_code}\n"
 echo "\n"
 

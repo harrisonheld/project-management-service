@@ -1,7 +1,15 @@
+
 from flask import Flask, request, jsonify
 import uuid
+import jwt
+import datetime
+
 
 app = Flask(__name__)
+
+# JWT secret and algorithm (for mock only)
+JWT_SECRET = 'mock_secret_key'
+JWT_ALGORITHM = 'HS256'
 
 # In-memory user store for mock
 users = {}
@@ -28,20 +36,34 @@ def login():
     if not user:
         return jsonify({'error': 'User does not exist'}), 401
     if user['password'] != password:
-        return jsonify({'error': 'Password does not exist'}), 401
-    fake_jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mockpayload.signature'
-    return jsonify({'access_token': fake_jwt, 'expires_in': 3600, 'user_id': user['user_id']})
+        return jsonify({'error': 'Password does not match'}), 401
+    payload = {
+        'user_id': user['user_id'],
+        'username': username,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return jsonify({'access_token': token, 'expires_in': 3600, 'user_id': user['user_id']})
 
 @app.route('/auth/validate', methods=['POST'])
 def validate():
     data = request.json
     token = data.get('access_token')
-    # Accept only the mock token for testing
-    if token and token.startswith('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'):
-        # Return the first user for simplicity - a real implementation should return the user the token corresponds to
-        for username, info in users.items():
-            return jsonify({'valid': True, 'user_id': info['user_id'], 'username': username})
-    return jsonify({'error': 'Invalid or expired token'}), 401
+    if not token:
+        return jsonify({'valid': False, 'reason': 'Missing token'}), 401
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get('user_id')
+        username = payload.get('username')
+        # Check user exists in our in-memory store
+        user = users.get(username)
+        if not user or user['user_id'] != user_id:
+            return jsonify({'valid': False, 'reason': 'User not found'}), 401
+        return jsonify({'valid': True, 'user_id': user_id, 'username': username})
+    except jwt.ExpiredSignatureError:
+        return jsonify({'valid': False, 'reason': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'valid': False, 'reason': 'Invalid token'}), 401
 
 if __name__ == '__main__':
     app.run(port=5001, debug=True)
