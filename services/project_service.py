@@ -40,7 +40,7 @@ def get_project_details(slug):
     project["owner"] = str(project["owner"])
     project["users"] = [str(u) for u in project["users"]]
     
-    from .db import db
+    from db import db
     hardware = list(db.hardware.find({"project_id": project_id}))
     for h in hardware:
         h["_id"] = str(h["_id"])

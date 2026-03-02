@@ -62,7 +62,13 @@ source .env
 flask run
 ```
 
-### Tests
+### run_full_stack.sh
+This script runs:
+- a local mock of the UserAuth service
+- our ProjectManagement service
+
+### Usage.sh
+This script will run through all the curl requests that our app can expect to make.
 ```sh
-run_tests.sh
+usage.sh
 ```
