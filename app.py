@@ -9,7 +9,18 @@ app = Flask(__name__)
 CORS(app)
 swagger = Swagger(app)
 
-
+app.config['SWAGGER'] = {
+    'title': 'Project Management API',
+    'uiversion': 3,
+    'securityDefinitions': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': 'Enter: Bearer <your_token>'
+        }
+    }
+}
 
 from api.project_routes import project_bp
 app.register_blueprint(project_bp)
