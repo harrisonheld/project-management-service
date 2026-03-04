@@ -1,13 +1,41 @@
 from flask import Blueprint, request, jsonify
+from flasgger import swag_from
 import services.project_service as project_service
 import services.auth_service as auth_service
 
 project_bp = Blueprint("projects", __name__)
 
-
 @project_bp.route("/projects", methods=["GET", "POST"])
 def projects():
-	"""Get all user projects or create a new project"""
+	"""
+	Get all user projects or create a new project
+	---
+	tags:
+      - Projects
+    parameters:
+    - name: some_query_param
+  	  in: query
+      type: string
+      required: false
+      description: Filter projects by name
+	- name: body
+	  in: body
+	  required: true
+	  schema:
+		type: object
+		properties:
+		  name:
+		  type: string
+		  description:
+		  type: string
+	responses:
+	  200:
+	    description: A list of projects
+	  201:
+	    description: Project created
+	  401:
+	    description: Unauthorized
+	"""
 	auth_header = request.headers.get("Authorization", "")
 	if not auth_header.startswith("Bearer "):
 		return jsonify({"error": "Missing or invalid Authorization header"}), 401
@@ -22,10 +50,8 @@ def projects():
 		slug = data.get("slug")
 		name = data.get("name")
 		description = data.get("description", "")
-
 		if not slug or not name:
 			return jsonify({"error": "slug and name required"}), 400
-
 		success, message, result = project_service.create_new_project(slug, name, description, user_id)
 		if not success:
 			return jsonify({"error": message}), 400
@@ -35,9 +61,27 @@ def projects():
 	projects = project_service.get_user_projects(user_id)
 	return jsonify(projects), 200
 
-
 @project_bp.route("/projects/<slug>", methods=["GET"])
 def get_project(slug):
+    """
+    Get project details by slug
+    ---
+    tags:
+      - Projects
+    parameters:
+      - name: slug
+        in: path
+        type: string
+        required: true
+        description: The project slug
+    responses:
+      200:
+        description: A project
+      401:
+        description: Unauthorized
+      404:
+        description: Project not found
+    """
 	auth_header = request.headers.get("Authorization", "")
 	if not auth_header.startswith("Bearer "):
 		return jsonify({"error": "Missing or invalid Authorization header"}), 401
@@ -51,9 +95,27 @@ def get_project(slug):
 		return jsonify({"error": message}), 404
 	return jsonify(data)
 
-
 @project_bp.route("/projects/<slug>/join", methods=["POST"])
 def join_project(slug):
+	"""
+	Join a project by slug
+	---
+	tags:
+      - Projects
+    parameters:
+      - name: slug
+        in: path
+        type: string
+        required: true
+        description: The project slug
+	responses:
+	  200:
+	    description: Successfully joined project
+	  401:
+	    description: Unauthorized
+	  404:
+	    description: Project not found
+	"""
 	auth_header = request.headers.get("Authorization", "")
 	if not auth_header.startswith("Bearer "):
 		return jsonify({"error": "Missing or invalid Authorization header"}), 401
