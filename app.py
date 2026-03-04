@@ -9,8 +9,6 @@ app = Flask(__name__)
 CORS(app)
 swagger = Swagger(app)
 
-
-
 from api.project_routes import project_bp
 app.register_blueprint(project_bp)
 
