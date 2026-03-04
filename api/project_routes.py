@@ -13,21 +13,21 @@ def projects():
     tags:
       - Projects
     parameters:
-    - name: some_query_param
+      - name: some_query_param
         in: query
-      type: string
-      required: false
-      description: Filter projects by name
-    - name: body
-      in: body
-      required: true
-      schema:
-        type: object
-        properties:
-          name:
-          type: string
-          description:
-          type: string
+        type: string
+        required: false
+        description: Filter projects by name
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            description:
+              type: string
     responses:
       200:
         description: A list of projects
