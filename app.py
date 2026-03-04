@@ -1,5 +1,7 @@
 import os
 from flask import Flask
+from dotenv import load_dotenv
+load_dotenv()
 from flask_cors import CORS
 import datetime
 from db import db, client
@@ -11,6 +13,14 @@ CORS(app)
 app.config['SWAGGER'] = {
     'title': 'Project Management API',
     'uiversion': 3,
+}
+
+swagger = Swagger(app, template={
+    'swagger': '2.0',
+    'info': {
+        'title': 'Project Management API',
+        'version': '1.0'
+    },
     'securityDefinitions': {
         'Bearer': {
             'type': 'apiKey',
@@ -19,9 +29,7 @@ app.config['SWAGGER'] = {
             'description': 'Enter: Bearer <your_token>'
         }
     }
-}
-
-swagger = Swagger(app)
+})
 
 from api.project_routes import project_bp
 app.register_blueprint(project_bp)
@@ -31,4 +39,4 @@ def health_check():
     return {"status": "ok"}, 200
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5000)

@@ -12,6 +12,8 @@ def get_projects():
     ---
     tags:
       - Projects
+    security:
+      - Bearer: []
     parameters:
       - name: some_query_param
         in: query
@@ -38,6 +40,8 @@ def create_project():
     ---
     tags:
       - Projects
+    security:
+      - Bearer: []
     parameters:
       - name: body
         in: body
@@ -76,6 +80,8 @@ def get_project(slug):
     ---
     tags:
       - Projects
+    security:
+      - Bearer: []
     parameters:
       - name: slug
         in: path
@@ -103,6 +109,8 @@ def join_project(slug):
     ---
     tags:
       - Projects
+    security:
+      - Bearer: []
     parameters:
       - name: slug
         in: path
