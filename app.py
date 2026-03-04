@@ -1,7 +1,10 @@
 import os
 from flask import Flask
-from dotenv import load_dotenv
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 from flask_cors import CORS
 import datetime
 from db import db, client
