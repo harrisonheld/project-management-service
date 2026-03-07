@@ -25,4 +25,6 @@ In a separate terminal:
 ./usage.sh
 ```
 
-`usage.sh` drives gRPC auth login/register via Python stubs and then exercises the public ProjectManagement HTTP endpoints.
+`usage.sh` hits all of our HTTP endpoints and prints the results and status codes. 
+
+The UserAuth service is setup to accept as valid any token in the form `token-<user>` and will return the user_id as `<user>`. Otherwise the token is invalid.

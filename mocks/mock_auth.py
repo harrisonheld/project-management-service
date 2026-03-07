@@ -7,8 +7,8 @@ import grpc
 GENERATED_PATH = Path(__file__).resolve().parent.parent / "generated" 
 if str(GENERATED_PATH) not in sys.path: 
     sys.path.insert(0, str(GENERATED_PATH))
-import users_pb2 
-import users_pb2_grpc
+import users_pb2  # type: ignore
+import users_pb2_grpc # type: ignore
 
 
 AUTH_GRPC_PORT = os.environ.get("USERAUTH_GRPC_PORT", os.environ.get("USER_GRPC_PORT", "50051"))
