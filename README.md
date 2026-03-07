@@ -6,17 +6,12 @@
 - Local: `http://localhost:5000`
 
 ### Authentication
-- All endpoints require `Authorization: Bearer <token>`.
+- All endpoints require `Authorization: Bearer <token>`. This token is to be obtained by calling the User Service.
+- If you provide an invalid token, you will get one of the following errors:
 - If the header is missing or malformed, API returns `401` with:
 	- `{"error":"Missing or invalid Authorization header"}`
 - If token validation fails, API returns `401` with:
 	- `{"error":"Invalid or expired token"}`
-
-### Current mock token format
-- During local development with mock auth, valid tokens follow:
-	- `token-<user_id>`
-- Example: `token-alice123`
-
 ---
 
 ### 1) Create Project
