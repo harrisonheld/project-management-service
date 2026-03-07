@@ -134,6 +134,55 @@
 
 ---
 
+### 6) Check Membership
+- **Method / Path**: `GET /projects/<slug>/membership`
+- **Headers**:
+	- `Authorization: Bearer <token>`
+- **Request Body**: none
+- **Success**: `200 OK`
+```json
+{
+	"message": "Membership checked",
+	"project_slug": "project-alpha",
+	"user_id": "alice123",
+	"in_project": true
+}
+```
+- **Errors**:
+	- `404` if project not found:
+		- `{"error":"Project not found"}`
+	- `401` auth errors
+
+---
+
+## gRPC API (for Resource team)
+
+### ProjectService
+- **Address (local)**: `PROJECT_GRPC_ADDR` (default `localhost:50053`)
+- **RPC**: `CheckUserInProject(CheckUserInProjectRequest) returns (CheckUserInProjectResponse)`
+
+**Request**
+```proto
+message CheckUserInProjectRequest {
+  string token = 1;
+  string project_slug = 2;
+}
+```
+
+**Response**
+```proto
+message CheckUserInProjectResponse {
+  bool in_project = 1;
+}
+```
+
+**gRPC error mapping**
+- `INVALID_ARGUMENT`: token or project_slug missing
+- `UNAUTHENTICATED`: token invalid
+- `NOT_FOUND`: project slug not found
+
+---
+
 ### Frontend notes
 - `owner` and `users[]` are user IDs (strings from auth service).
 - Project lookup for details uses `slug`.
@@ -155,14 +204,18 @@ pip install -r requirements.txt
 `run_full_stack.sh` does the following:
 1. Compiles our .proto files.
 2. Starts the mock Auth gRPC service.
-3. Starts OUR Project Management HTTP API.
+3. Starts the Project gRPC service.
+4. Starts OUR Project Management HTTP API.
 
 ## Smoke test
 In a separate terminal:
 ```sh
-./usage.sh
+./smoke_http.sh
+./smoke_grpc.py
 ```
 
-`usage.sh` hits all of our HTTP endpoints and prints the results and status codes. 
+`smoke_http.sh` hits all of our HTTP endpoints and prints the results and status codes. 
+`smoke_grpc.sh` hits all of the gRPC endpoints we provide.
+
 
 The UserAuth service is setup to accept as valid any token in the form `token-<user>` and will return the user_id as `<user>`. Otherwise the token is invalid.

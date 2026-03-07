@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+#
+# TEST HTTP ENDPOINTS
+#
 PROJECT_URL="${PROJECT_URL:-http://localhost:5000}"
 TOKEN="token-alice$(shuf -i 10000-99999 -n 1)"
 TOKEN2="token-bob$(shuf -i 10000-99999 -n 1)"

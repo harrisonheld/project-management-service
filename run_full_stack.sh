@@ -28,18 +28,26 @@ python -m grpc_tools.protoc \
     -I./proto \
     --python_out=./generated \
     --grpc_python_out=./generated \
-    ./proto/users.proto
+    ./proto/users.proto \
+    ./proto/project.proto
 
 export USERAUTH_GRPC_PORT="${USERAUTH_GRPC_PORT:-50051}"
 export USERAUTH_GRPC_ADDR="${USERAUTH_GRPC_ADDR:-localhost:${USERAUTH_GRPC_PORT}}"
 export USER_GRPC_ADDR="${USER_GRPC_ADDR:-${USERAUTH_GRPC_ADDR}}"
+export PROJECT_GRPC_PORT="${PROJECT_GRPC_PORT:-50053}"
+export PROJECT_GRPC_ADDR="${PROJECT_GRPC_ADDR:-localhost:${PROJECT_GRPC_PORT}}"
 
 echo "Starting mock Auth gRPC service on ${USERAUTH_GRPC_ADDR}..."
 python mocks/mock_auth.py &
 MOCK_USERAUTH_PID=$!
 sleep 1
 
-trap "kill $MOCK_USERAUTH_PID 2>/dev/null || true" EXIT
+echo "Starting Project gRPC service on ${PROJECT_GRPC_ADDR}..."
+python project_grpc_server.py &
+PROJECT_GRPC_PID=$!
+sleep 1
+
+trap "kill $MOCK_USERAUTH_PID 2>/dev/null || true; kill $PROJECT_GRPC_PID 2>/dev/null || true" EXIT
 
 export FLASK_APP=app.py
 export FLASK_ENV=development

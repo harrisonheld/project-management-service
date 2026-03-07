@@ -72,3 +72,20 @@ def leave_project(slug, user_id):
         "slug": project["slug"],
         "name": project["name"]
     }
+
+
+def check_user_in_project(slug, user_id):
+    """
+    Check whether a user is a member of a project
+    Returns: (success: bool, message: str, data: dict or None)
+    """
+    project = find_project_by_slug(slug)
+    if not project:
+        return False, "Project not found", None
+
+    in_project = user_id in project["users"]
+    return True, "Membership checked", {
+        "project_slug": project["slug"],
+        "user_id": user_id,
+        "in_project": in_project,
+    }
