@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 import services.project_service as project_service
+import services.auth_service as auth_service
 from decorators import require_auth
 
 project_bp = Blueprint("projects", __name__)
