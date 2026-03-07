@@ -147,3 +147,6 @@ env/
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Generated gRPC stubs
+generated/

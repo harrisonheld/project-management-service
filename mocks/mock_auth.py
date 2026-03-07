@@ -1,73 +1,46 @@
+from concurrent import futures
+import os
+import sys
+from pathlib import Path
 
-from flask import Flask, request, jsonify
-import jwt
-import datetime
-import random
+import grpc
+GENERATED_PATH = Path(__file__).resolve().parent.parent / "generated" 
+if str(GENERATED_PATH) not in sys.path: 
+    sys.path.insert(0, str(GENERATED_PATH))
+import users_pb2  # type: ignore
+import users_pb2_grpc # type: ignore
 
 
-app = Flask(__name__)
+AUTH_GRPC_PORT = os.environ.get("USERAUTH_GRPC_PORT", os.environ.get("USER_GRPC_PORT", "50051"))
+TOKEN_PREFIX = "token-"
 
-# JWT secret and algorithm (for mock only)
-JWT_SECRET = 'mock_secret_key'
-JWT_ALGORITHM = 'HS256'
 
-# Helper to generate a random 24-character hex string (MongoDB ObjectId style)
-def random_objectid():
-    return ''.join(random.choices('0123456789abcdef', k=24))
+class AuthService(users_pb2_grpc.AuthServiceServicer):
+    # MOCK of the Verify token method
+    # Any token beginning with the TOKEN_PREFIX will be accepted as valid
+    # Otherwise it will be invalid
 
-# In-memory user store for mock
-users = {}
+    def VerifyToken(self, request, context):
+        token = (request.token or "").strip()
+        if not token.startswith(TOKEN_PREFIX) or len(token) <= len(TOKEN_PREFIX):
+            context.set_code(grpc.StatusCode.UNAUTHENTICATED)
+            context.set_details("Invalid token")
+            print(f"mock_auth.py: INVALID TOKEN: {token}")
+            return users_pb2.VerifyTokenResponse()
 
-@app.route('/auth/register', methods=['POST'])
-def register():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    if not username or not password:
-        return jsonify({'error': 'Missing username or password'}), 400
-    if username in users:
-        return jsonify({'error': 'Username already registered'}), 400
-    user_id = random_objectid()
-    users[username] = {'username': username, 'password': password, 'user_id': user_id}
-    return jsonify({'user_id': user_id})
+        user_id = token[len(TOKEN_PREFIX):]  # just send whatever comes after "token-"
+        print(f"mock_auth.py: VALID TOKEN: {token}. RETURNING user_id={user_id}")
+        return users_pb2.VerifyTokenResponse(user_id=user_id)
 
-@app.route('/auth/login', methods=['POST'])
-def login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    user = users.get(username)
-    if not user:
-        return jsonify({'error': 'User does not exist'}), 401
-    if user['password'] != password:
-        return jsonify({'error': 'Password does not match'}), 401
-    payload = {
-        'user_id': user['user_id'],
-        'username': username,
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-    }
-    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    return jsonify({'access_token': token, 'expires_in': 3600, 'user_id': user['user_id']})
 
-@app.route('/auth/validate', methods=['POST'])
-def validate():
-    data = request.json
-    token = data.get('access_token')
-    if not token:
-        return jsonify({'valid': False, 'reason': 'Missing token'}), 401
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        user_id = payload.get('user_id')
-        username = payload.get('username')
-        # Check user exists in our in-memory store
-        user = users.get(username)
-        if not user or user['user_id'] != user_id:
-            return jsonify({'valid': False, 'reason': 'User not found'}), 401
-        return jsonify({'valid': True, 'user_id': user_id, 'username': username})
-    except jwt.ExpiredSignatureError:
-        return jsonify({'valid': False, 'reason': 'Token expired'}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({'valid': False, 'reason': 'Invalid token'}), 401
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    users_pb2_grpc.add_AuthServiceServicer_to_server(AuthService(), server)
+    server.add_insecure_port(f"[::]:{AUTH_GRPC_PORT}")
+    server.start()
+    print(f"Mock Auth gRPC service listening on :{AUTH_GRPC_PORT}")
+    server.wait_for_termination()
 
-if __name__ == '__main__':
-    app.run(port=5001, debug=True)
+
+if __name__ == "__main__":
+    serve()

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service ProjectService {
+  rpc CheckUserInProject(CheckUserInProjectRequest) returns (CheckUserInProjectResponse);
+}
+
+message CheckUserInProjectRequest {
+  string token = 1;
+  string project_slug = 2;
+}
+
+message CheckUserInProjectResponse {
+  bool in_project = 1;
+}
