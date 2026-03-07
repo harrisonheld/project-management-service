@@ -47,3 +47,11 @@ def add_user_to_project(project_id, user_id):
         {"_id": project_id},
         {"$push": {"users": user_id}}
     )
+
+
+def remove_user_from_project(project_id, user_id):
+    """Remove a user from a project"""
+    db.projects.update_one(
+        {"_id": project_id},
+        {"$pull": {"users": user_id}}
+    )
