@@ -1,6 +1,5 @@
 
 from repositories.project_repo import find_project_by_slug, create_project, get_user_projects as repo_get_user_projects, add_user_to_project
-from services.hardware_service import list_hardware, get_hardware
 
 
 def create_new_project(slug, name, description, user_id):
@@ -21,7 +20,7 @@ def get_user_projects(user_id):
 
 def get_project_details(slug):
     """
-    Get project details including hardware
+    Get project details
     Returns: (success: bool, message: str, data: dict or None)
     """
     project = find_project_by_slug(slug)
@@ -31,14 +30,6 @@ def get_project_details(slug):
     project["_id"] = str(project_id)
     project["owner"] = str(project["owner"])
     project["users"] = [str(u) for u in project["users"]]
-    # Get all hardware from hardware service
-    status, hardware_list = list_hardware()
-    if status == 200:
-        # Filter hardware belonging to this project (if hardware has project_id field)
-        project_hardware = [h for h in hardware_list if h.get("project_id") == str(project_id)]
-    else:
-        project_hardware = []
-    project["hardware"] = project_hardware
     return True, "Project found", project
 
 

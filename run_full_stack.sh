@@ -1,9 +1,8 @@
 #!/bin/bash
-# Run the full ProjectManagement + mock UserAuth stack
+# Run the full ProjectManagement app with gRPC internal service mocks
 
-set -e
+set -euo pipefail
 
-# Source environment variables
 if [ -f .env ]; then
     source .env
 else
@@ -11,7 +10,6 @@ else
     exit 1
 fi
 
-# Activate Python virtual environment
 if [ -d venv ]; then
     source venv/bin/activate
 else
@@ -19,23 +17,31 @@ else
     exit 1
 fi
 
-# Start mock services in background
-echo "Starting mock UserAuth service..."
-(cd mocks && python mock_auth.py &)
+#
+# compile protobuf files
+#
+mkdir -p generated
+touch generated/__init__.py
+
+echo "Generating gRPC Python code from .proto files..."
+python -m grpc_tools.protoc \
+    -I./proto \
+    --python_out=./generated \
+    --grpc_python_out=./generated \
+    ./proto/users.proto
+
+export USERAUTH_GRPC_PORT="${USERAUTH_GRPC_PORT:-50051}"
+export USERAUTH_GRPC_ADDR="${USERAUTH_GRPC_ADDR:-localhost:${USERAUTH_GRPC_PORT}}"
+export USER_GRPC_ADDR="${USER_GRPC_ADDR:-${USERAUTH_GRPC_ADDR}}"
+
+echo "Starting mock Auth gRPC service on ${USERAUTH_GRPC_ADDR}..."
+python mocks/mock_auth.py &
 MOCK_USERAUTH_PID=$!
-sleep 2
-echo "Starting mock HardwareManagement service..."
-(cd mocks && python mock_hardware.py &)
-MOCK_HARDWARE_PID=$!
-sleep 2
+sleep 1
 
-# Kill mocks on exit (^C)
-trap "kill $MOCK_USERAUTH_PID 2>/dev/null; kill $MOCK_HARDWARE_PID 2>/dev/null" EXIT
+trap "kill $MOCK_USERAUTH_PID 2>/dev/null || true" EXIT
 
-# Start main ProjectManagement Flask app (foreground)
 export FLASK_APP=app.py
 export FLASK_ENV=development
+echo "Starting ProjectManagement HTTP API on http://localhost:5000"
 flask run
-
-# Wait for Flask to exit (trap will run after)
-wait

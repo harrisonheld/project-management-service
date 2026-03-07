@@ -1,5 +1,4 @@
 from db import db
-from bson import ObjectId
 
 
 def get_user_project_ids(user_id):

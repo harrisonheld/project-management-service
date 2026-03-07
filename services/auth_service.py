@@ -1,19 +1,53 @@
-# auth_service.py:
-# this service will delegate tasks to the Auth Service by sending HTTPS requests
-
 import os
-import requests
+import sys
+from pathlib import Path
 
-USERAUTH_SERVICE_URL = os.environ.get("USERAUTH_SERVICE_URL")
+import grpc
 
-def register_user(username, password):
-    resp = requests.post(f"{USERAUTH_SERVICE_URL}/register", json={"username": username, "password": password})
-    return resp.status_code, resp.json()
 
-def login_user(username, password):
-    resp = requests.post(f"{USERAUTH_SERVICE_URL}/login", json={"username": username, "password": password})
-    return resp.status_code, resp.json()
+GENERATED_PATH = Path(__file__).resolve().parent.parent / "generated"
+if str(GENERATED_PATH) not in sys.path:
+    sys.path.insert(0, str(GENERATED_PATH))
+
+import users_pb2
+import users_pb2_grpc
+
+
+USERAUTH_GRPC_ADDR = os.environ.get("USERAUTH_GRPC_ADDR", os.environ.get("USER_GRPC_ADDR", "localhost:50051"))
+
+_channel = None
+_stub = None
+
+
+def _get_stub():
+    global _channel, _stub
+    if _stub is None:
+        _channel = grpc.insecure_channel(USERAUTH_GRPC_ADDR)
+        _stub = users_pb2_grpc.AuthServiceStub(_channel)
+    return _stub
+
+
+def _grpc_to_http_status(code):
+    if code == grpc.StatusCode.INVALID_ARGUMENT:
+        return 400
+    if code == grpc.StatusCode.UNAUTHENTICATED:
+        return 401
+    if code == grpc.StatusCode.NOT_FOUND:
+        return 404
+    if code == grpc.StatusCode.UNAVAILABLE:
+        return 503
+    return 500
+
 
 def validate_token(token):
-    resp = requests.post(f"{USERAUTH_SERVICE_URL}/validate", json={"access_token": token})
-    return resp.status_code, resp.json()
+    try:
+        response = _get_stub().VerifyToken(users_pb2.VerifyTokenRequest(token=token or ""))
+        if not response.user_id:
+            return 401, {"error": "Invalid token", "valid": False}
+        return 200, {
+            "valid": True,
+            "user_id": response.user_id,
+            "username": response.user_id,
+        }
+    except grpc.RpcError as exc:
+        return _grpc_to_http_status(exc.code()), {"error": exc.details() or "Invalid token", "valid": False}
