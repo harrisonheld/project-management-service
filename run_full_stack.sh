@@ -37,12 +37,10 @@ export USER_GRPC_ADDR="${USER_GRPC_ADDR:-${USERAUTH_GRPC_ADDR}}"
 export PROJECT_GRPC_PORT="${PROJECT_GRPC_PORT:-50053}"
 export PROJECT_GRPC_ADDR="${PROJECT_GRPC_ADDR:-localhost:${PROJECT_GRPC_PORT}}"
 
-echo "Starting mock Auth gRPC service on ${USERAUTH_GRPC_ADDR}..."
 python mocks/mock_auth.py &
 MOCK_USERAUTH_PID=$!
 sleep 1
 
-echo "Starting Project gRPC service on ${PROJECT_GRPC_ADDR}..."
 python project_grpc_server.py &
 PROJECT_GRPC_PID=$!
 sleep 1
@@ -51,5 +49,4 @@ trap "kill $MOCK_USERAUTH_PID 2>/dev/null || true; kill $PROJECT_GRPC_PID 2>/dev
 
 export FLASK_APP=app.py
 export FLASK_ENV=development
-echo "Starting ProjectManagement HTTP API on http://localhost:5000"
 flask run

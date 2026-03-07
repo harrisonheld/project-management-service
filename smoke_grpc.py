@@ -16,7 +16,8 @@ import project_pb2  # type: ignore
 import project_pb2_grpc  # type: ignore
 
 
-PROJECT_URL = os.environ.get("PROJECT_URL", "http://localhost:5000")
+FLASK_RUN_PORT = os.environ.get("FLASK_RUN_PORT", "5000")
+PROJECT_URL = os.environ.get("PROJECT_URL", f"http://localhost:{FLASK_RUN_PORT}")
 PROJECT_GRPC_ADDR = os.environ.get("PROJECT_GRPC_ADDR", "localhost:50053")
 SMOKE_SLUG = os.environ.get("SMOKE_SLUG", f"smoke-project-{uuid.uuid4().hex[:8]}")
 OWNER_TOKEN = os.environ.get("SMOKE_OWNER_TOKEN", f"token-smoke-owner-{uuid.uuid4().hex[:6]}")

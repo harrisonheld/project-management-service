@@ -42,4 +42,6 @@ def health_check():
     return {"status": "ok"}, 200
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("FLASK_RUN_PORT", 5000))
+    print(port)
+    app.run(debug=True, port=port)

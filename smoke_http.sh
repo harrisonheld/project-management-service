@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-PROJECT_URL="${PROJECT_URL:-http://localhost:5000}"
+FLASK_RUN_PORT="${FLASK_RUN_PORT:-5000}"
+PROJECT_URL="${PROJECT_URL:-http://localhost:${FLASK_RUN_PORT}}"
 TOKEN="token-alice$(shuf -i 10000-99999 -n 1)"
 TOKEN2="token-bob$(shuf -i 10000-99999 -n 1)"
 INVALID_TOKEN="not-a-real-token"
