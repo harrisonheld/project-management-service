@@ -28,7 +28,7 @@ python -m grpc_tools.protoc \
     -I./proto \
     --python_out=./generated \
     --grpc_python_out=./generated \
-    ./proto/users.proto \
+    ./proto/user.proto \
     ./proto/project.proto
 
 export USERAUTH_GRPC_PORT="${USERAUTH_GRPC_PORT:-50051}"

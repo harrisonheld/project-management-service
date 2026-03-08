@@ -7,38 +7,44 @@ import grpc
 GENERATED_PATH = Path(__file__).resolve().parent.parent / "generated" 
 if str(GENERATED_PATH) not in sys.path: 
     sys.path.insert(0, str(GENERATED_PATH))
-import users_pb2  # type: ignore
-import users_pb2_grpc # type: ignore
+import user_pb2  # type: ignore
+import user_pb2_grpc # type: ignore
 
 
 AUTH_GRPC_PORT = os.environ.get("USERAUTH_GRPC_PORT", os.environ.get("USER_GRPC_PORT", "50051"))
 TOKEN_PREFIX = "token-"
 
 
-class AuthService(users_pb2_grpc.AuthServiceServicer):
-    # MOCK of the Verify token method
-    # Any token beginning with the TOKEN_PREFIX will be accepted as valid
-    # Otherwise it will be invalid
+class AuthService(user_pb2_grpc.UserServiceServicer):
+    def Register(self, request, context):
+        return user_pb2.RegisterResponse(ok=True, message="registered")
 
-    def VerifyToken(self, request, context):
-        token = (request.token or "").strip()
+    def Login(self, request, context):
+        user_id = (request.userId or "").strip()
+        if not user_id:
+            return user_pb2.LoginResponse(ok=False, token="", message="userId required")
+        return user_pb2.LoginResponse(ok=True, token=f"{TOKEN_PREFIX}{user_id}", message="ok")
+
+    def Me(self, request, context):
+        metadata = dict(context.invocation_metadata())
+        auth = metadata.get("authorization") or metadata.get("Authorization") or ""
+        token = auth.split(" ", 1)[1].strip() if auth.startswith("Bearer ") else ""
+
         if not token.startswith(TOKEN_PREFIX) or len(token) <= len(TOKEN_PREFIX):
             context.set_code(grpc.StatusCode.UNAUTHENTICATED)
             context.set_details("Invalid token")
-            print(f"mock_auth.py: INVALID TOKEN: {token}")
-            return users_pb2.VerifyTokenResponse()
+            return user_pb2.MeResponse(ok=False, userId="", username="", message="unauthorized")
 
-        user_id = token[len(TOKEN_PREFIX):]  # just send whatever comes after "token-"
-        print(f"mock_auth.py: VALID TOKEN: {token}. RETURNING user_id={user_id}")
-        return users_pb2.VerifyTokenResponse(user_id=user_id)
+        user_id = token[len(TOKEN_PREFIX):]
+        return user_pb2.MeResponse(ok=True, userId=user_id, username=user_id, message="ok")
 
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    users_pb2_grpc.add_AuthServiceServicer_to_server(AuthService(), server)
+    user_pb2_grpc.add_UserServiceServicer_to_server(AuthService(), server)
     server.add_insecure_port(f"[::]:{AUTH_GRPC_PORT}")
     server.start()
-    print(f"Mock Auth gRPC service listening on :{AUTH_GRPC_PORT}")
+    print(f"Mock User gRPC service listening on :{AUTH_GRPC_PORT}")
     server.wait_for_termination()
 
 
