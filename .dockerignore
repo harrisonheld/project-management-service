@@ -1,0 +1,31 @@
+# Ignore everything by default, then allow only what is required to build and
+# run project_grpc_server.py.
+*
+
+# Build inputs
+!Dockerfile
+!requirements.txt
+!.dockerignore
+
+# Runtime entrypoint and direct modules
+!project_grpc_server.py
+!db.py
+
+# Runtime packages used by project_grpc_server.py
+!services/
+!services/**
+!repositories/
+!repositories/**
+!generated/
+!generated/**
+
+# Keep Python package caches and local env artifacts out of context
+**/__pycache__/
+**/*.pyc
+venv/
+.venv/
+
+# Never send local secrets or git metadata
+.git/
+.env
+.env.*
