@@ -86,6 +86,19 @@ def main() -> int:
 			raise AssertionError("create second project: project_id empty")
 		print("PASS: create second project")
 
+		print("[2b] Validate project by id")
+		validate_ok = stub.ValidateProject(
+			project_pb2.ValidateProjectRequest(project_id=create_one.project_id)
+		)
+		if not validate_ok.valid:
+			raise AssertionError("validate project: expected valid=True")
+		validate_bad = stub.ValidateProject(
+			project_pb2.ValidateProjectRequest(project_id="507f1f77bcf86cd799439011")
+		)
+		if validate_bad.valid:
+			raise AssertionError("validate project: expected valid=False for unknown id")
+		print("PASS: validate project by id")
+
 		print("[3] Create project with invalid token")
 		_expect_rpc_error(
 			grpc.StatusCode.UNAUTHENTICATED,

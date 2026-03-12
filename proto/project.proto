@@ -7,6 +7,7 @@ service ProjectService {
   rpc JoinProject(JoinProjectRequest) returns (JoinProjectResponse);
   rpc LeaveProject(LeaveProjectRequest) returns (LeaveProjectResponse);
   rpc CheckUserInProject(CheckUserInProjectRequest) returns (CheckUserInProjectResponse);
+  rpc ValidateProject(ValidateProjectRequest) returns (ValidateProjectResponse);
 }
 
 message Project {
@@ -77,4 +78,12 @@ message CheckUserInProjectRequest {
 
 message CheckUserInProjectResponse {
   bool in_project = 1;
+}
+
+message ValidateProjectRequest {
+  string project_id = 1;
+}
+
+message ValidateProjectResponse {
+  bool valid = 1;
 }

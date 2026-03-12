@@ -184,6 +184,17 @@ class ProjectGrpcService(project_pb2_grpc.ProjectServiceServicer):
             in_project=bool(data.get("in_project")),
         )
 
+    def ValidateProject(self, request, context):
+        project_id = (request.project_id or "").strip()
+        if not project_id:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("project_id is required")
+            return project_pb2.ValidateProjectResponse()
+
+        _, _, data = project_service.validate_project(project_id)
+        data = data or {}
+        return project_pb2.ValidateProjectResponse(valid=bool(data.get("valid")))
+
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

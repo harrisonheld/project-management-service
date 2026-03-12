@@ -1,5 +1,5 @@
 
-from repositories.project_repo import find_project_by_slug, create_project, get_user_projects as repo_get_user_projects, add_user_to_project, remove_user_from_project
+from repositories.project_repo import find_project_by_slug, find_project_by_id, create_project, get_user_projects as repo_get_user_projects, add_user_to_project, remove_user_from_project
 
 
 def create_new_project(slug, name, description, user_id):
@@ -89,3 +89,12 @@ def check_user_in_project(slug, user_id):
         "user_id": user_id,
         "in_project": in_project,
     }
+
+
+def validate_project(project_id):
+    """
+    Validate whether a project exists by project id
+    Returns: (success: bool, message: str, data: dict)
+    """
+    project = find_project_by_id(project_id)
+    return True, "Validation checked", {"valid": bool(project)}

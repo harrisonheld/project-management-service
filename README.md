@@ -15,6 +15,7 @@ This service now exposes **only gRPC APIs**. No HTTP endpoints are provided.
 - `JoinProject(JoinProjectRequest) returns (JoinProjectResponse)`
 - `LeaveProject(LeaveProjectRequest) returns (LeaveProjectResponse)`
 - `CheckUserInProject(CheckUserInProjectRequest) returns (CheckUserInProjectResponse)`
+- `ValidateProject(ValidateProjectRequest) returns (ValidateProjectResponse)`
 
 ### Core messages
 ```proto
@@ -28,7 +29,7 @@ message Project {
 }
 ```
 
-All requests include `token` for auth. Slug-based methods include `project_slug` (or `slug` on create).
+All requests include `token` for auth, except `ValidateProject` which accepts `project_id`. Slug-based methods include `project_slug` (or `slug` on create).
 
 ### gRPC status mapping
 - `INVALID_ARGUMENT`: required fields missing (e.g. empty token, slug, or name)

@@ -1,4 +1,5 @@
 from db import db
+from bson import ObjectId
 
 
 def get_user_project_ids(user_id):
@@ -10,6 +11,13 @@ def get_user_project_ids(user_id):
 def find_project_by_slug(slug):
     """Find a project by its slug"""
     return db.projects.find_one({"slug": slug})
+
+
+def find_project_by_id(project_id):
+    """Find a project by its id"""
+    if not ObjectId.is_valid(project_id):
+        return None
+    return db.projects.find_one({"_id": ObjectId(project_id)})
 
 
 def create_project(slug, name, description, owner_id):
