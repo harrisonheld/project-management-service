@@ -67,7 +67,7 @@ jobs:
             "${{ vars.ACA_APP_NAME }}"
 
       - name: Roll back on deployment failure
-        if: failure()
+        if: failure() && steps.before.outputs.previous_active_revision != ''
         shell: bash
         run: |
           chmod +x scripts/azure/rollback_to_previous_revision.sh
