@@ -1,0 +1,77 @@
+name: Deploy to Azure Container Apps
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  IMAGE_NAME: project-management-service
+
+jobs:
+  deploy:
+    name: Deploy Revision
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Capture pre-deploy active revision
+        id: before
+        shell: bash
+        run: |
+          PREV_ACTIVE=$(az containerapp revision list \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --name "${{ vars.ACA_APP_NAME }}" \
+            --query "[?properties.active==true][0].name" -o tsv)
+          echo "previous_active_revision=$PREV_ACTIVE" >> "$GITHUB_OUTPUT"
+          echo "Previous active revision: $PREV_ACTIVE"
+
+      - name: Deploy new image revision
+        id: deploy
+        shell: bash
+        run: |
+          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
+          IMAGE_URI="${{ vars.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:$HEAD_SHA"
+          REVISION_SUFFIX="${HEAD_SHA:0:7}"
+
+          az containerapp update \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --name "${{ vars.ACA_APP_NAME }}" \
+            --image "$IMAGE_URI" \
+            --revision-suffix "$REVISION_SUFFIX"
+
+      - name: Wait for new revision health
+        id: wait
+        shell: bash
+        run: |
+          chmod +x scripts/azure/wait_for_revision_health.sh
+          scripts/azure/wait_for_revision_health.sh \
+            "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            "${{ vars.ACA_APP_NAME }}"
+
+      - name: Roll back on deployment failure
+        if: failure()
+        shell: bash
+        run: |
+          chmod +x scripts/azure/rollback_to_previous_revision.sh
+          scripts/azure/rollback_to_previous_revision.sh \
+            "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            "${{ vars.ACA_APP_NAME }}" \
+            "${{ steps.before.outputs.previous_active_revision }}"
