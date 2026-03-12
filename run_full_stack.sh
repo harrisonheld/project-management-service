@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run the full ProjectManagement app with gRPC internal service mocks
+# Run the full ProjectManagement stack (gRPC-only)
 
 set -euo pipefail
 
@@ -41,12 +41,6 @@ python mocks/mock_auth.py &
 MOCK_USERAUTH_PID=$!
 sleep 1
 
-python project_grpc_server.py &
-PROJECT_GRPC_PID=$!
-sleep 1
+trap "kill $MOCK_USERAUTH_PID 2>/dev/null || true" EXIT
 
-trap "kill $MOCK_USERAUTH_PID 2>/dev/null || true; kill $PROJECT_GRPC_PID 2>/dev/null || true" EXIT
-
-export FLASK_APP=app.py
-export FLASK_ENV=development
-flask run
+python project_grpc_server.py

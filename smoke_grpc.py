@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 
 import grpc
-import requests
 
 
 GENERATED_PATH = Path(__file__).resolve().parent / "generated"
@@ -16,28 +15,23 @@ import project_pb2  # type: ignore
 import project_pb2_grpc  # type: ignore
 
 
-FLASK_RUN_PORT = os.environ.get("FLASK_RUN_PORT", "5000")
-PROJECT_URL = os.environ.get("PROJECT_URL", f"http://localhost:{FLASK_RUN_PORT}")
 PROJECT_GRPC_ADDR = os.environ.get("PROJECT_GRPC_ADDR", "localhost:50053")
 SMOKE_SLUG = os.environ.get("SMOKE_SLUG", f"smoke-project-{uuid.uuid4().hex[:8]}")
 OWNER_TOKEN = os.environ.get("SMOKE_OWNER_TOKEN", f"token-smoke-owner-{uuid.uuid4().hex[:6]}")
 OTHER_TOKEN = os.environ.get("SMOKE_OTHER_TOKEN", f"token-smoke-other-{uuid.uuid4().hex[:6]}")
+INVALID_TOKEN = os.environ.get("SMOKE_INVALID_TOKEN", "not-a-real-token")
 
 
-def _create_project(project_url: str, token: str, slug: str) -> None:
-	body = {
-		"slug": slug,
-		"name": "Smoke Project",
-		"description": "Created by smoke_grpc.py",
-	}
-	headers = {
-		"Content-Type": "application/json",
-		"Authorization": f"Bearer {token}",
-	}
-	resp = requests.post(f"{project_url}/projects", json=body, headers=headers, timeout=10)
-	if resp.status_code != 201:
-		raise AssertionError(f"project setup failed: HTTP {resp.status_code} body={resp.text}")
-	print(f"PASS: setup project created -> slug={slug}")
+def _expect_rpc_error(expected_code, call, label: str) -> None:
+	try:
+		call()
+		raise AssertionError(f"{label}: expected {expected_code.name}, call succeeded")
+	except grpc.RpcError as exc:
+		if exc.code() != expected_code:
+			raise AssertionError(
+				f"{label}: expected {expected_code.name}, got {exc.code().name}: {exc.details()}"
+			)
+		print(f"PASS: {label} -> {exc.code().name}")
 
 
 def _assert_membership(stub, token: str, slug: str, expected: bool, label: str) -> None:
@@ -51,38 +45,126 @@ def _assert_membership(stub, token: str, slug: str, expected: bool, label: str) 
 	print(f"PASS: {label} -> in_project={response.in_project}")
 
 
-def _assert_unauthenticated(stub, token: str, slug: str, label: str) -> None:
-	try:
-		stub.CheckUserInProject(project_pb2.CheckUserInProjectRequest(token=token, project_slug=slug))
-		raise AssertionError(f"{label}: expected UNAUTHENTICATED error, call succeeded")
-	except grpc.RpcError as exc:
-		if exc.code() != grpc.StatusCode.UNAUTHENTICATED:
-			raise AssertionError(
-				f"{label}: expected UNAUTHENTICATED, got {exc.code().name}: {exc.details()}"
-			)
-		print(f"PASS: {label} -> {exc.code().name}")
+def _assert_project_in_list(projects, slug: str, expected: bool, label: str) -> None:
+	found = any(project.slug == slug for project in projects)
+	if found != expected:
+		raise AssertionError(f"{label}: expected present={expected}, got present={found}")
+	print(f"PASS: {label} -> present={found}")
 
 
 def main() -> int:
 	channel = grpc.insecure_channel(PROJECT_GRPC_ADDR)
 	stub = project_pb2_grpc.ProjectServiceStub(channel)
 
+	second_slug = f"{SMOKE_SLUG}-2"
+	third_slug = f"{SMOKE_SLUG}-3"
+
 	try:
-		_create_project(PROJECT_URL, OWNER_TOKEN, SMOKE_SLUG)
-		_assert_membership(stub, OWNER_TOKEN, SMOKE_SLUG, True, "owner membership")
-		_assert_membership(stub, OTHER_TOKEN, SMOKE_SLUG, False, "other user non-membership")
-		_assert_unauthenticated(stub, "not-a-real-token", SMOKE_SLUG, "invalid token rejection")
+		print("[1] Create project")
+		create_one = stub.CreateProject(
+			project_pb2.CreateProjectRequest(
+				token=OWNER_TOKEN,
+				slug=SMOKE_SLUG,
+				name="My Project",
+				description="A sample project",
+			)
+		)
+		if not create_one.project_id:
+			raise AssertionError("create project: project_id empty")
+		print("PASS: create project")
+
+		print("[2] Create second project")
+		create_two = stub.CreateProject(
+			project_pb2.CreateProjectRequest(
+				token=OWNER_TOKEN,
+				slug=second_slug,
+				name="My Project",
+				description="A sample project",
+			)
+		)
+		if not create_two.project_id:
+			raise AssertionError("create second project: project_id empty")
+		print("PASS: create second project")
+
+		print("[3] Create project with invalid token")
+		_expect_rpc_error(
+			grpc.StatusCode.UNAUTHENTICATED,
+			lambda: stub.CreateProject(
+				project_pb2.CreateProjectRequest(
+					token=INVALID_TOKEN,
+					slug=third_slug,
+					name="My Project",
+					description="A sample project",
+				)
+			),
+			"invalid token create rejected",
+		)
+
+		print("[4] Get projects for valid user")
+		list_valid = stub.ListProjects(project_pb2.ListProjectsRequest(token=OWNER_TOKEN))
+		_assert_project_in_list(list_valid.projects, SMOKE_SLUG, True, "get projects")
+
+		print("[5] Get projects with invalid token")
+		_expect_rpc_error(
+			grpc.StatusCode.UNAUTHENTICATED,
+			lambda: stub.ListProjects(project_pb2.ListProjectsRequest(token=INVALID_TOKEN)),
+			"invalid token list rejected",
+		)
+
+		print("[6] Get project details")
+		details = stub.GetProject(
+			project_pb2.GetProjectRequest(token=OWNER_TOKEN, project_slug=SMOKE_SLUG)
+		)
+		if details.project.slug != SMOKE_SLUG:
+			raise AssertionError(
+				f"get project details: expected slug={SMOKE_SLUG}, got {details.project.slug}"
+			)
+		print("PASS: get project details")
+
+		print("[7] Join as owner (already member)")
+		_expect_rpc_error(
+			grpc.StatusCode.FAILED_PRECONDITION,
+			lambda: stub.JoinProject(
+				project_pb2.JoinProjectRequest(token=OWNER_TOKEN, project_slug=SMOKE_SLUG)
+			),
+			"join already-member rejected",
+		)
+
+		print("[8] Join as second user")
+		joined = stub.JoinProject(
+			project_pb2.JoinProjectRequest(token=OTHER_TOKEN, project_slug=SMOKE_SLUG)
+		)
+		if not joined.project_id:
+			raise AssertionError("join second user: project_id empty")
+		print("PASS: join second user")
+
+		print("[9] Membership check for owner")
+		_assert_membership(stub, OWNER_TOKEN, SMOKE_SLUG, True, "membership owner")
+
+		print("[10] Leave as second user")
+		left = stub.LeaveProject(
+			project_pb2.LeaveProjectRequest(token=OTHER_TOKEN, project_slug=SMOKE_SLUG)
+		)
+		if not left.project_id:
+			raise AssertionError("leave second user: project_id empty")
+		print("PASS: leave second user")
+
+		print("[11] Leave as last user")
+		_expect_rpc_error(
+			grpc.StatusCode.FAILED_PRECONDITION,
+			lambda: stub.LeaveProject(
+				project_pb2.LeaveProjectRequest(token=OWNER_TOKEN, project_slug=SMOKE_SLUG)
+			),
+			"last-user leave rejected",
+		)
 	except AssertionError as exc:
 		print(f"FAIL: {exc}")
-		return 1
-	except requests.RequestException as exc:
-		print(f"FAIL: HTTP setup error: {exc}")
 		return 1
 	except grpc.RpcError as exc:
 		print(f"FAIL: unexpected gRPC error {exc.code().name}: {exc.details()}")
 		return 1
 
-	print("gRPC smoke tests passed")
+	print("smoke_grpc.py PASSED")
 	return 0
 
 
