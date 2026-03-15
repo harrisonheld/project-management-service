@@ -168,6 +168,17 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### UserAuth endpoint configuration
+Set these in `.env` to control which UserAuth service this app calls:
+
+- `USERAUTH_GRPC_ADDR` (example: `user-service.politesky-57421525.centralus.azurecontainerapps.io:443`)
+- `USERAUTH_GRPC_TLS` (`true`, `false`, or `auto`)
+
+Notes:
+- `USERAUTH_GRPC_TLS=true` uses `grpc.secure_channel(..., grpc.ssl_channel_credentials())`.
+- `USERAUTH_GRPC_TLS=false` uses insecure gRPC (useful for local mock services).
+- `USERAUTH_GRPC_TLS=auto` enables TLS automatically when the address ends with `:443`.
+
 ## Run full stack locally
 ```sh
 ./run_full_stack.sh

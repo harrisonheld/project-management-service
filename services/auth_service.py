@@ -14,15 +14,27 @@ import user_pb2_grpc
 
 
 USERAUTH_GRPC_ADDR = os.environ.get("USERAUTH_GRPC_ADDR", os.environ.get("USER_GRPC_ADDR", "localhost:50051"))
+USERAUTH_GRPC_TLS = (os.environ.get("USERAUTH_GRPC_TLS") or "auto").strip().lower()
 
 _channel = None
 _stub = None
 
 
+def _should_use_tls() -> bool:
+    if USERAUTH_GRPC_TLS in {"1", "true", "yes", "on"}:
+        return True
+    if USERAUTH_GRPC_TLS in {"0", "false", "no", "off"}:
+        return False
+    return USERAUTH_GRPC_ADDR.endswith(":443")
+
+
 def _get_stub():
     global _channel, _stub
     if _stub is None:
-        _channel = grpc.insecure_channel(USERAUTH_GRPC_ADDR)
+        if _should_use_tls():
+            _channel = grpc.secure_channel(USERAUTH_GRPC_ADDR, grpc.ssl_channel_credentials())
+        else:
+            _channel = grpc.insecure_channel(USERAUTH_GRPC_ADDR)
         _stub = user_pb2_grpc.UserServiceStub(_channel)
     return _stub
 

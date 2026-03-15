@@ -17,8 +17,8 @@ import project_pb2_grpc  # type: ignore
 
 PROJECT_GRPC_ADDR = os.environ.get("PROJECT_GRPC_ADDR", "localhost:50053")
 SMOKE_SLUG = os.environ.get("SMOKE_SLUG", f"smoke-project-{uuid.uuid4().hex[:8]}")
-OWNER_TOKEN = os.environ.get("SMOKE_OWNER_TOKEN", f"token-smoke-owner-{uuid.uuid4().hex[:6]}")
-OTHER_TOKEN = os.environ.get("SMOKE_OTHER_TOKEN", f"token-smoke-other-{uuid.uuid4().hex[:6]}")
+OWNER_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwNWJlY2QxOSIsInVzZXJuYW1lIjoiaGFycmlzb24iLCJleHAiOjE3NzM2MjE0MzR9.GVYqjdRevkCJsrIOEwQ0vLBPAc_52lWkDkpjBhZ8USo"
+OTHER_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YTJjMDFhOSIsInVzZXJuYW1lIjoiaGFycmlzb24yIiwiZXhwIjoxNzczNjIxNjQyfQ.TVnr6FxngjQjG2skwIIgzB-kb5BLmpcZtMJUglpkX20"
 INVALID_TOKEN = os.environ.get("SMOKE_INVALID_TOKEN", "not-a-real-token")
 
 
