@@ -16,7 +16,8 @@ import user_pb2_grpc  # type: ignore
 
 def main() -> int:
     target = "user-service.politesky-57421525.centralus.azurecontainerapps.io:443"
-    user_id = uuid.uuid4().hex[:8]
+    # user_id and username will be the same
+    user_id = "harrison"
     username = "harrison"
     password = "password"
 
@@ -24,12 +25,18 @@ def main() -> int:
     stub = user_pb2_grpc.UserServiceStub(channel)
 
     try:
+        #
+        # register a new user
+        #
         register_response = stub.Register(
             user_pb2.RegisterRequest(userId=user_id, username=username, password=password),
             timeout=8,
         )
         print(f"register_ok={register_response.ok} register_message={register_response.message}")
 
+        #
+        # login to get a token
+        #
         login_response = stub.Login(
             user_pb2.LoginRequest(userId=user_id, password=password),
             timeout=8,
@@ -41,6 +48,9 @@ def main() -> int:
         print("login_ok=True")
         print(f"TOKEN={login_response.token}")
 
+        #
+        # validate a token to get the userId and username
+        #
         validate_response = stub.Me(
             user_pb2.MeRequest(),
             metadata=(("authorization", f"Bearer {login_response.token}"),),
