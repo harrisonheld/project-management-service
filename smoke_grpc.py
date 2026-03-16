@@ -14,12 +14,11 @@ if str(GENERATED_PATH) not in sys.path:
 import project_pb2  # type: ignore
 import project_pb2_grpc  # type: ignore
 
-
-PROJECT_GRPC_ADDR = os.environ.get("PROJECT_GRPC_ADDR", "localhost:50053")
-SMOKE_SLUG = os.environ.get("SMOKE_SLUG", f"smoke-project-{uuid.uuid4().hex[:8]}")
-OWNER_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwNWJlY2QxOSIsInVzZXJuYW1lIjoiaGFycmlzb24iLCJleHAiOjE3NzM2MjE0MzR9.GVYqjdRevkCJsrIOEwQ0vLBPAc_52lWkDkpjBhZ8USo"
-OTHER_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YTJjMDFhOSIsInVzZXJuYW1lIjoiaGFycmlzb24yIiwiZXhwIjoxNzczNjIxNjQyfQ.TVnr6FxngjQjG2skwIIgzB-kb5BLmpcZtMJUglpkX20"
-INVALID_TOKEN = os.environ.get("SMOKE_INVALID_TOKEN", "not-a-real-token")
+PROJECT_GRPC_ADDR = "projectapp.jollyocean-e8f011bb.centralus.azurecontainerapps.io:443"
+SMOKE_SLUG = f"smoke-project-{uuid.uuid4().hex[:8]}"
+OWNER_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NGY0YTY0MyIsInVzZXJuYW1lIjoiaGFycmlzb24yIiwiZXhwIjoxNzczNjQ2NTAxfQ.4JuHQOcY_C9zqE9F1jUvDHGZ-h1WmWuJELlJmc7wvgA"
+OTHER_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZGM3MzUyYSIsInVzZXJuYW1lIjoiaGFycmlzb24iLCJleHAiOjE3NzM2NDY2MjF9.l9ub_cJIGXiw79o436J9dQrG1NMsXpFK8hT_-AbU_y4"
+INVALID_TOKEN = "not-a-real-token"
 
 
 def _expect_rpc_error(expected_code, call, label: str) -> None:
@@ -53,7 +52,10 @@ def _assert_project_in_list(projects, slug: str, expected: bool, label: str) -> 
 
 
 def main() -> int:
-	channel = grpc.insecure_channel(PROJECT_GRPC_ADDR)
+	channel = grpc.secure_channel(
+		PROJECT_GRPC_ADDR,
+		grpc.ssl_channel_credentials(),
+	)
 	stub = project_pb2_grpc.ProjectServiceStub(channel)
 
 	second_slug = f"{SMOKE_SLUG}-2"

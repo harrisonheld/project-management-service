@@ -14,11 +14,10 @@ if str(GENERATED_PATH) not in sys.path:
 import user_pb2  # type: ignore
 import user_pb2_grpc  # type: ignore
 
-
 def main() -> int:
     target = "user-service.politesky-57421525.centralus.azurecontainerapps.io:443"
     user_id = uuid.uuid4().hex[:8]
-    username = "harrison2"
+    username = "harrison"
     password = "password"
 
     channel = grpc.secure_channel(target, grpc.ssl_channel_credentials())
