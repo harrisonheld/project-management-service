@@ -14,12 +14,12 @@ if str(GENERATED_PATH) not in sys.path:
 import project_pb2  # type: ignore
 import project_pb2_grpc  # type: ignore
 
-PROJECT_GRPC_ADDR = "projectapp.jollyocean-e8f011bb.centralus.azurecontainerapps.io:443"
+PROJECT_GRPC_ADDR = os.environ.get("PROJECT_GRPC_ADDR", "localhost:50053")
+PROJECT_GRPC_TLS = os.environ.get("PROJECT_GRPC_TLS", "auto").strip().lower()
 SMOKE_SLUG = f"smoke-project-{uuid.uuid4().hex[:8]}"
-OWNER_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NGY0YTY0MyIsInVzZXJuYW1lIjoiaGFycmlzb24yIiwiZXhwIjoxNzczNjQ2NTAxfQ.4JuHQOcY_C9zqE9F1jUvDHGZ-h1WmWuJELlJmc7wvgA"
-OTHER_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZGM3MzUyYSIsInVzZXJuYW1lIjoiaGFycmlzb24iLCJleHAiOjE3NzM2NDY2MjF9.l9ub_cJIGXiw79o436J9dQrG1NMsXpFK8hT_-AbU_y4"
+OWNER_TOKEN = "token-bob"
+OTHER_TOKEN = "token-alice"
 INVALID_TOKEN = "not-a-real-token"
-
 
 def _expect_rpc_error(expected_code, call, label: str) -> None:
 	try:
@@ -51,11 +51,16 @@ def _assert_project_in_list(projects, slug: str, expected: bool, label: str) -> 
 	print(f"PASS: {label} -> present={found}")
 
 
+def _assert_project_status(project, expected_status, label: str) -> None:
+	if project.status != expected_status:
+		raise AssertionError(
+			f"{label}: expected status={expected_status}, got {project.status}"
+		)
+	print(f"PASS: {label} -> status={project.status}")
+
+
 def main() -> int:
-	channel = grpc.secure_channel(
-		PROJECT_GRPC_ADDR,
-		grpc.ssl_channel_credentials(),
-	)
+	channel = grpc.insecure_channel(PROJECT_GRPC_ADDR)
 	stub = project_pb2_grpc.ProjectServiceStub(channel)
 
 	second_slug = f"{SMOKE_SLUG}-2"
@@ -69,6 +74,7 @@ def main() -> int:
 				slug=SMOKE_SLUG,
 				name="My Project",
 				description="A sample project",
+				status=project_pb2.PROJECT_STATUS_TODO,
 			)
 		)
 		if not create_one.project_id:
@@ -82,6 +88,7 @@ def main() -> int:
 				slug=second_slug,
 				name="My Project",
 				description="A sample project",
+				status=project_pb2.PROJECT_STATUS_IN_PROGRESS,
 			)
 		)
 		if not create_two.project_id:
@@ -134,7 +141,39 @@ def main() -> int:
 			raise AssertionError(
 				f"get project details: expected slug={SMOKE_SLUG}, got {details.project.slug}"
 			)
+		_assert_project_status(details.project, project_pb2.PROJECT_STATUS_TODO, "default project status")
 		print("PASS: get project details")
+
+		print("[6b] Update project status as owner")
+		updated = stub.UpdateProjectStatus(
+			project_pb2.UpdateProjectStatusRequest(
+				token=OWNER_TOKEN,
+				project_slug=SMOKE_SLUG,
+				status=project_pb2.PROJECT_STATUS_DONE,
+			)
+		)
+		if updated.status != project_pb2.PROJECT_STATUS_DONE:
+			raise AssertionError("update status: expected status DONE")
+		print("PASS: update project status as owner")
+
+		print("[6c] Verify updated project status")
+		updated_details = stub.GetProject(
+			project_pb2.GetProjectRequest(token=OWNER_TOKEN, project_slug=SMOKE_SLUG)
+		)
+		_assert_project_status(updated_details.project, project_pb2.PROJECT_STATUS_DONE, "updated project status")
+
+		print("[6d] Non-owner cannot update status")
+		_expect_rpc_error(
+			grpc.StatusCode.PERMISSION_DENIED,
+			lambda: stub.UpdateProjectStatus(
+				project_pb2.UpdateProjectStatusRequest(
+					token=OTHER_TOKEN,
+					project_slug=SMOKE_SLUG,
+					status=project_pb2.PROJECT_STATUS_IN_PROGRESS,
+				)
+			),
+			"non-owner status update rejected",
+		)
 
 		print("[7] Join as owner (already member)")
 		_expect_rpc_error(

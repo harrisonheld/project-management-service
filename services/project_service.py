@@ -1,15 +1,31 @@
 
-from repositories.project_repo import find_project_by_slug, find_project_by_id, create_project, get_user_projects as repo_get_user_projects, add_user_to_project, remove_user_from_project
+from repositories.project_repo import (
+    ALLOWED_PROJECT_STATUSES,
+    add_user_to_project,
+    create_project,
+    find_project_by_id,
+    find_project_by_slug,
+    get_user_projects as repo_get_user_projects,
+    remove_user_from_project,
+    update_project_status as repo_update_project_status,
+)
 
 
-def create_new_project(slug, name, description, user_id):
+def normalize_project_status(status):
+    """Normalize inbound status values to accepted lowercase identifiers."""
+    normalized = (status or "").strip().lower()
+    return normalized if normalized in ALLOWED_PROJECT_STATUSES else "todo"
+
+
+def create_new_project(slug, name, description, user_id, status="todo"):
     """
     Create a new project
     Returns: (success: bool, message: str, data: dict or None)
     """
     if find_project_by_slug(slug):
         return False, "Slug already exists", None
-    project_id = create_project(slug, name, description, user_id)
+    normalized_status = normalize_project_status(status)
+    project_id = create_project(slug, name, description, user_id, normalized_status)
     return True, "Project created", {"project_id": str(project_id)}
 
 
@@ -30,7 +46,31 @@ def get_project_details(slug):
     project["_id"] = str(project_id)
     project["owner"] = str(project["owner"])
     project["users"] = [str(u) for u in project["users"]]
+    project["status"] = normalize_project_status(project.get("status", "todo"))
     return True, "Project found", project
+
+
+def update_project_status(slug, user_id, status):
+    """
+    Update a project's status
+    Returns: (success: bool, message: str, data: dict or None)
+    """
+    project = find_project_by_slug(slug)
+    if not project:
+        return False, "Project not found", None
+
+    if str(project.get("owner", "")) != str(user_id):
+        return False, "Only the project owner can update status", None
+
+    normalized_status = normalize_project_status(status)
+    repo_update_project_status(project["_id"], normalized_status)
+
+    return True, "Project status updated", {
+        "project_id": str(project["_id"]),
+        "slug": project["slug"],
+        "name": project["name"],
+        "status": normalized_status,
+    }
 
 
 def join_project(slug, user_id):

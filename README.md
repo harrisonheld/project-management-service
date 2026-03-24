@@ -3,7 +3,7 @@
 ## HTTP API (for Frontend Team)
 
 ### Base URL
-- Local: `http://localhost:500053`
+- Local: `projectapp.jollyocean-e8f011bb.centralus.azurecontainerapps.io:443`
 
 ### Authentication
 - All endpoints require `Authorization: Bearer <token>`. This token is to be obtained by calling the User Service.
@@ -53,6 +53,7 @@
 		"id": "69ac7a257bebdeca3b00a8c0",
 		"name": "Project Alpha",
 		"slug": "project-alpha",
+		"status": "PROJECT_STATUS_TODO",
 		"owner": "alice123",
 		"users": ["alice123", "bob456"],
 		"description": "Optional description"
@@ -74,6 +75,7 @@
 	"_id": "69ac7a257bebdeca3b00a8c0",
 	"slug": "project-alpha",
 	"name": "Project Alpha",
+	"status": "PROJECT_STATUS_TODO",
 	"description": "Optional description",
 	"owner": "alice123",
 	"users": ["alice123", "bob456"]
@@ -159,6 +161,15 @@
 
 ### ProjectService
 See `proto/project.proto` for our gRPC contract.
+
+### Project status values
+- `PROJECT_STATUS_TODO`
+- `PROJECT_STATUS_IN_PROGRESS`
+- `PROJECT_STATUS_DONE`
+
+CreateProject accepts an optional `status` field (defaults to `PROJECT_STATUS_TODO` when omitted), and `GetProject`/`ListProjects` return each project's status.
+
+`UpdateProjectStatus` allows the project owner to change status by slug.
 
 ## Developer setup
 ```sh

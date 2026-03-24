@@ -4,10 +4,18 @@ service ProjectService {
   rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse);
   rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
   rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
+  rpc UpdateProjectStatus(UpdateProjectStatusRequest) returns (UpdateProjectStatusResponse);
   rpc JoinProject(JoinProjectRequest) returns (JoinProjectResponse);
   rpc LeaveProject(LeaveProjectRequest) returns (LeaveProjectResponse);
   rpc CheckUserInProject(CheckUserInProjectRequest) returns (CheckUserInProjectResponse);
   rpc ValidateProject(ValidateProjectRequest) returns (ValidateProjectResponse);
+}
+
+enum ProjectStatus {
+  PROJECT_STATUS_UNSPECIFIED = 0;
+  PROJECT_STATUS_TODO = 1;
+  PROJECT_STATUS_IN_PROGRESS = 2;
+  PROJECT_STATUS_DONE = 3;
 }
 
 message Project {
@@ -17,6 +25,7 @@ message Project {
   string description = 4;
   string owner = 5;
   repeated string users = 6;
+  ProjectStatus status = 7;
 }
 
 message CreateProjectRequest {
@@ -24,6 +33,7 @@ message CreateProjectRequest {
   string slug = 2;
   string name = 3;
   string description = 4;
+  ProjectStatus status = 5;
 }
 
 message CreateProjectResponse {
@@ -45,6 +55,20 @@ message GetProjectRequest {
 
 message GetProjectResponse {
   Project project = 1;
+}
+
+message UpdateProjectStatusRequest {
+  string token = 1;
+  string project_slug = 2;
+  ProjectStatus status = 3;
+}
+
+message UpdateProjectStatusResponse {
+  string message = 1;
+  string project_id = 2;
+  string project_slug = 3;
+  string project_name = 4;
+  ProjectStatus status = 5;
 }
 
 message JoinProjectRequest {
