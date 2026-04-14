@@ -1,3 +1,4 @@
+import logging
 
 from repositories.project_repo import (
     ALLOWED_PROJECT_STATUSES,
@@ -9,6 +10,8 @@ from repositories.project_repo import (
     remove_user_from_project,
     update_project_status as repo_update_project_status,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_project_status(status):
@@ -22,6 +25,7 @@ def create_new_project(slug, name, description, user_id, status="todo"):
     Create a new project
     Returns: (success: bool, message: str, data: dict or None)
     """
+    logger.info("create_new_project slug=%s user=%s", slug, user_id)
     if find_project_by_slug(slug):
         return False, "Slug already exists", None
     normalized_status = normalize_project_status(status)
@@ -31,6 +35,7 @@ def create_new_project(slug, name, description, user_id, status="todo"):
 
 def get_user_projects(user_id):
     """Get all projects for a user"""
+    logger.info("get_user_projects user=%s", user_id)
     return repo_get_user_projects(user_id)
 
 
@@ -39,6 +44,7 @@ def get_project_details(slug):
     Get project details
     Returns: (success: bool, message: str, data: dict or None)
     """
+    logger.info("get_project_details slug=%s", slug)
     project = find_project_by_slug(slug)
     if not project:
         return False, "Not found", None
@@ -55,6 +61,7 @@ def update_project_status(slug, user_id, status):
     Update a project's status
     Returns: (success: bool, message: str, data: dict or None)
     """
+    logger.info("update_project_status slug=%s user=%s status=%s", slug, user_id, status)
     project = find_project_by_slug(slug)
     if not project:
         return False, "Project not found", None
@@ -78,6 +85,7 @@ def join_project(slug, user_id):
     Add a user to a project
     Returns: (success: bool, message: str, data: dict or None)
     """
+    logger.info("join_project slug=%s user=%s", slug, user_id)
     project = find_project_by_slug(slug)
     if not project:
         return False, "Project not found", None
@@ -96,6 +104,7 @@ def leave_project(slug, user_id):
     Remove a user from a project
     Returns: (success: bool, message: str, data: dict or None)
     """
+    logger.info("leave_project slug=%s user=%s", slug, user_id)
     project = find_project_by_slug(slug)
     if not project:
         return False, "Project not found", None
@@ -119,6 +128,7 @@ def check_user_in_project(slug, user_id):
     Check whether a user is a member of a project
     Returns: (success: bool, message: str, data: dict or None)
     """
+    logger.info("check_user_in_project slug=%s user=%s", slug, user_id)
     project = find_project_by_slug(slug)
     if not project:
         return False, "Project not found", None
@@ -136,5 +146,6 @@ def validate_project(project_id):
     Validate whether a project exists by project id
     Returns: (success: bool, message: str, data: dict)
     """
+    logger.info("validate_project project_id=%s", project_id)
     project = find_project_by_id(project_id)
     return True, "Validation checked", {"valid": bool(project)}
