@@ -1,8 +1,11 @@
+import logging
 import os
 import sys
 from pathlib import Path
 
 import grpc
+
+logger = logging.getLogger(__name__)
 
 
 GENERATED_PATH = Path(__file__).resolve().parent.parent / "generated"
@@ -52,17 +55,21 @@ def _grpc_to_http_status(code):
 
 
 def validate_token(token):
+    logger.info("validate_token called")
     try:
         response = _get_stub().Me(
             user_pb2.MeRequest(),
             metadata=(("authorization", f"Bearer {token or ''}"),),
         )
         if not response.ok or not response.userId:
+            logger.warning("Token validation failed: invalid response")
             return 401, {"error": "Invalid token", "valid": False}
+        logger.info("Token validated for user=%s", response.userId)
         return 200, {
             "valid": True,
             "user_id": response.userId,
             "username": response.username or response.userId,
         }
     except grpc.RpcError as exc:
+        logger.warning("Token validation RPC error: %s", exc.details())
         return _grpc_to_http_status(exc.code()), {"error": exc.details() or "Invalid token", "valid": False}

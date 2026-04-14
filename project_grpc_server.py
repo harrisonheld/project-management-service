@@ -1,9 +1,13 @@
 from concurrent import futures
+import logging
 import os
 import sys
 from pathlib import Path
 
 import grpc
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 import services.auth_service as auth_service
 import services.project_service as project_service
@@ -36,12 +40,14 @@ class ProjectGrpcService(project_pb2_grpc.ProjectServiceServicer):
     def _authenticate(token: str, context):
         cleaned_token = (token or "").strip()
         if not cleaned_token:
+            logger.warning("Auth failed: empty token")
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details("token is required")
             return None
 
         auth_status, auth_resp = auth_service.validate_token(cleaned_token)
         if auth_status != 200 or not auth_resp.get("valid"):
+            logger.warning("Auth failed: %s", auth_resp.get("error", "Invalid token"))
             context.set_code(grpc.StatusCode.UNAUTHENTICATED)
             context.set_details(auth_resp.get("error", "Invalid token"))
             return None
@@ -71,6 +77,7 @@ class ProjectGrpcService(project_pb2_grpc.ProjectServiceServicer):
         )
 
     def CreateProject(self, request, context):
+        logger.info("CreateProject called slug=%s", request.slug)
         user_id = self._authenticate(request.token, context)
         if not user_id:
             return project_pb2.CreateProjectResponse()
@@ -104,6 +111,7 @@ class ProjectGrpcService(project_pb2_grpc.ProjectServiceServicer):
         return project_pb2.CreateProjectResponse(project_id=str(data.get("project_id", "")))
 
     def ListProjects(self, request, context):
+        logger.info("ListProjects called")
         user_id = self._authenticate(request.token, context)
         if not user_id:
             return project_pb2.ListProjectsResponse()
@@ -114,6 +122,7 @@ class ProjectGrpcService(project_pb2_grpc.ProjectServiceServicer):
         )
 
     def GetProject(self, request, context):
+        logger.info("GetProject called slug=%s", request.project_slug)
         user_id = self._authenticate(request.token, context)
         if not user_id:
             return project_pb2.GetProjectResponse()
@@ -133,6 +142,7 @@ class ProjectGrpcService(project_pb2_grpc.ProjectServiceServicer):
         return project_pb2.GetProjectResponse(project=self._project_to_proto(data))
 
     def UpdateProjectStatus(self, request, context):
+        logger.info("UpdateProjectStatus called slug=%s", request.project_slug)
         user_id = self._authenticate(request.token, context)
         if not user_id:
             return project_pb2.UpdateProjectStatusResponse()
@@ -165,6 +175,7 @@ class ProjectGrpcService(project_pb2_grpc.ProjectServiceServicer):
         )
 
     def JoinProject(self, request, context):
+        logger.info("JoinProject called slug=%s", request.project_slug)
         user_id = self._authenticate(request.token, context)
         if not user_id:
             return project_pb2.JoinProjectResponse()
@@ -193,6 +204,7 @@ class ProjectGrpcService(project_pb2_grpc.ProjectServiceServicer):
         )
 
     def LeaveProject(self, request, context):
+        logger.info("LeaveProject called slug=%s", request.project_slug)
         user_id = self._authenticate(request.token, context)
         if not user_id:
             return project_pb2.LeaveProjectResponse()
@@ -221,6 +233,7 @@ class ProjectGrpcService(project_pb2_grpc.ProjectServiceServicer):
         )
 
     def CheckUserInProject(self, request, context):
+        logger.info("CheckUserInProject called slug=%s", request.project_slug)
         project_slug = (request.project_slug or "").strip()
 
         user_id = self._authenticate(request.token, context)
@@ -247,6 +260,7 @@ class ProjectGrpcService(project_pb2_grpc.ProjectServiceServicer):
         )
 
     def ValidateProject(self, request, context):
+        logger.info("ValidateProject called project_id=%s", request.project_id)
         project_id = (request.project_id or "").strip()
         if not project_id:
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
@@ -263,7 +277,7 @@ def serve():
     project_pb2_grpc.add_ProjectServiceServicer_to_server(ProjectGrpcService(), server)
     server.add_insecure_port(f"[::]:{PROJECT_GRPC_PORT}")
     server.start()
-    print(f"Project gRPC service listening on :{PROJECT_GRPC_PORT}")
+    logger.info("Project gRPC service listening on :%s", PROJECT_GRPC_PORT)
     server.wait_for_termination()
 
 
